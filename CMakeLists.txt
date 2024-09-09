@@ -1,13 +1,20 @@
-# template
+# window
 
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # ---- Project ----
 
 project(
-	template
-	VERSION 0.1.0
+	window
+	VERSION 5.0.0
 	LANGUAGES CXX)
+
+if(MSVC)
+    add_compile_options("/wd5050")
+endif()
+
+# --- Turn on Modules ---
+set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API aa1f7df0-828a-4fcd-9afc-2dc80491aca7)
 
 # ---- Fetch CPM ----
 
@@ -25,14 +32,39 @@ include(${CPM_DOWNLOAD_LOCATION})
 # PackageProject.cmake will be used to make our target installable
 CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
 
-# Example package:
-## Add package: shoejunk/hash
-#CPMAddPackage(
-#	NAME hash
-#	GITHUB_REPOSITORY shoejunk/hash
-#	#VERSION 0.0.1
-#	GIT_TAG main
-#)
+CPMAddPackage(
+	NAME sfml
+	GIT_TAG 2.5.1
+	GITHUB_REPOSITORY SFML/SFML
+	OPTIONS
+		"BUILD_SHARED_LIBS NO" # This tells CMake to build static libraries
+		"SFML_USE_STATIC_STD_LIBS YES" # This links SFML against the static runtime
+		"SFML_BUILD_AUDIO NO"
+		"SFML_BUILD_NETWORK NO"
+		"SFML_BUILD_GRAPHICS YES"
+		"SFML_BUILD_WINDOW YES"
+)
+
+# Add package: shoejunk/ds
+CPMAddPackage(
+	NAME ds
+	GITHUB_REPOSITORY shoejunk/ds
+	VERSION 2.1.1
+)
+
+# Add package: shoejunk/input
+CPMAddPackage(
+	NAME input
+	GITHUB_REPOSITORY shoejunk/input
+	VERSION 1.1.0
+)
+
+# Add package: shoejunk/log
+CPMAddPackage(
+	NAME log
+	GITHUB_REPOSITORY shoejunk/log
+	VERSION 1.1.0
+)
 
 # ---- Add source files ----
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.ixx")
@@ -40,7 +72,6 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/
 # ---- Create library ----
 
 # Note: for header-only libraries change all PUBLIC flags to INTERFACE and create an interface
-# target: add_library(${PROJECT_NAME} INTERFACE)
 add_library(${PROJECT_NAME} ${headers} ${sources})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
@@ -48,12 +79,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive-;/experimental:module>")
 
 target_include_directories(
-  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                         $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
+  ${PROJECT_NAME} PUBLIC
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
 )
 
-# Example link library:
-#target_link_libraries(${PROJECT_NAME} hash)
+target_link_libraries(${PROJECT_NAME} sfml-graphics sfml-window ds input log)
 
 # the location where the project's version header will be placed should match the project's regular
 # header paths

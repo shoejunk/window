@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.14...3.22)
 
-project(template_standalone LANGUAGES CXX)
+project(window_standalone LANGUAGES CXX)
 
 if(MSVC)
 	# I haven't figured out how to resolve this warning when importing std.core.
     add_compile_options("/wd5050")
 endif()
+
+# --- Turn on Modules ---
+set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API aa1f7df0-828a-4fcd-9afc-2dc80491aca7)
 
 # --- Import tools ----
 
@@ -21,7 +24,7 @@ CPMAddPackage(
   OPTIONS "CXXOPTS_BUILD_EXAMPLES NO" "CXXOPTS_BUILD_TESTS NO" "CXXOPTS_ENABLE_INSTALL YES"
 )
 
-CPMAddPackage(NAME template SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
+CPMAddPackage(NAME window SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
 
 # ---- Create standalone executable ----
 
@@ -29,6 +32,9 @@ file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 
 add_executable(${PROJECT_NAME} ${sources})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23 OUTPUT_NAME "template")
+target_compile_options(${PROJECT_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive-;/experimental:module>")
 
-target_link_libraries(${PROJECT_NAME} template cxxopts)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23 OUTPUT_NAME "window")
+
+target_link_libraries(${PROJECT_NAME} window cxxopts)
+file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
