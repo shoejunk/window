@@ -5,6 +5,7 @@ import stk.ds;
 import stk.input;
 import stk.log;
 import <SFML/Graphics.hpp>;
+import <cassert>;
 
 using namespace std;
 using namespace stk;
@@ -39,9 +40,10 @@ namespace stk
 			}
 
 			m_window.clear(sf::Color::Black);
-			for (auto& sprite : m_sprites)
+			for (const auto& drawable : m_drawables)
 			{
-				m_window.draw(sprite);
+				assert(drawable != nullptr);
+				m_window.draw(*drawable);
 			}
 			m_window.display();
 			return true;
@@ -57,7 +59,15 @@ namespace stk
 				{
 					try
 					{
-						m_sprites.emplace(tex);
+						auto sprite = std::make_shared<sf::Sprite>(tex);
+						sprite->setPosition(x, y);
+						sprite->setScale(0.2f, 0.2f);
+						if (!m_drawables.append(sprite))
+						{
+							errorln("Failed to append sprite to drawables");
+							m_textures.remove_at_unordered(m_textures.count() - 1);
+							return;
+						}
 					}
 					catch (...)
 					{
@@ -78,15 +88,17 @@ namespace stk
 				errorln("Failed to load texture: ", image_path);
 				return;
 			}
+		}
 
-			m_sprites[m_sprites.count() - 1].setPosition(x, y);
-			m_sprites[m_sprites.count() - 1].setScale(0.2f, 0.2f);
+		bool add_drawable(std::shared_ptr<sf::Drawable> drawable)
+		{
+			return m_drawables.append(drawable);
 		}
 
 	private:
 		sf::RenderWindow m_window;
 		ds::fixed_vector<sf::Texture, 512> m_textures;
-		ds::fixed_vector<sf::Sprite, 512> m_sprites;
+		ds::fixed_vector<std::shared_ptr<sf::Drawable>, 1024> m_drawables;
 		c_input m_input;
 	};
 }
