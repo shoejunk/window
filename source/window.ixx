@@ -2,6 +2,7 @@ export module stk.window;
 
 import std.core;
 import stk.ds;
+import stk.hash;
 import stk.input;
 import stk.log;
 import <SFML/Graphics.hpp>;
@@ -49,45 +50,61 @@ namespace stk
 			return true;
 		}
 
-		void make_sprite(std::string const& image_path, float x, float y)
+		bool make_sprite(std::string const& image_path, float x, float y)
 		{
+			c_hash image_hash(image_path);
 			try
 			{
-				m_textures.emplace();
-				sf::Texture& tex = m_textures[m_textures.count() - 1];
-				if (tex.loadFromFile(image_path))
+				std::shared_ptr<sf::Sprite> sprite;
+				size_t texture_index;
+
+				if (m_texture_map.contains(image_hash))
 				{
-					try
-					{
-						auto sprite = std::make_shared<sf::Sprite>(tex);
-						sprite->setPosition(x, y);
-						sprite->setScale(0.2f, 0.2f);
-						if (!m_drawables.append(sprite))
-						{
-							errorln("Failed to append sprite to drawables");
-							m_textures.remove_at_unordered(m_textures.count() - 1);
-							return;
-						}
-					}
-					catch (...)
-					{
-						errorln("Failed to create sprite from texture: ", image_path);
-						m_textures.remove_at_unordered(m_textures.count() - 1);
-						return;
-					}
+					texture_index = m_texture_map[image_hash];
+					sprite = std::make_shared<sf::Sprite>(m_textures[texture_index]);
 				}
 				else
 				{
-					errorln("Failed to load image from file: ", image_path);
-					m_textures.remove_at_unordered(m_textures.count() - 1);
-					return;
+					if (!m_textures.emplace())
+					{
+						errorln("Failed to create texture for image: ", image_path);
+						return false;
+					}
+
+					texture_index = m_textures.count() - 1;
+					sf::Texture& tex = m_textures[texture_index];
+
+					if (!tex.loadFromFile(image_path))
+					{
+						errorln("Failed to load image from file: ", image_path);
+						m_textures.remove_at_unordered(texture_index);
+						return false;
+					}
+
+					sprite = std::make_shared<sf::Sprite>(tex);
+					m_texture_map[image_hash] = texture_index;
 				}
+
+				sprite->setPosition(x, y);
+				sprite->setScale(0.2f, 0.2f);
+
+				if (!m_drawables.append(sprite))
+				{
+					errorln("Failed to append sprite to drawables");
+					return false;
+				}
+			}
+			catch (const std::exception& e)
+			{
+				errorln("Exception occurred while creating sprite: ", e.what());
+				return false;
 			}
 			catch (...)
 			{
-				errorln("Failed to load texture: ", image_path);
-				return;
+				errorln("Unknown error occurred while creating sprite for image: ", image_path);
+				return false;
 			}
+			return true;
 		}
 
 		bool add_drawable(std::shared_ptr<sf::Drawable> drawable)
@@ -99,6 +116,7 @@ namespace stk
 		sf::RenderWindow m_window;
 		ds::fixed_vector<sf::Texture, 512> m_textures;
 		ds::fixed_vector<std::shared_ptr<sf::Drawable>, 1024> m_drawables;
+		std::unordered_map<c_hash, uint32_t, s_hash_hasher> m_texture_map;
 		c_input m_input;
 	};
 }
