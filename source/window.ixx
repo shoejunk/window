@@ -50,6 +50,47 @@ namespace stk
 			return true;
 		}
 
+		bool make_texture(std::string const& image_path)
+		{
+			c_hash image_hash(image_path);
+			try
+			{
+				if (m_texture_map.contains(image_hash))
+				{
+					return true;
+				}
+
+				if (!m_textures.emplace())
+				{
+					errorln("Failed to create texture for image: ", image_path);
+					return false;
+				}
+
+				size_t texture_index = m_textures.count() - 1;
+				sf::Texture& tex = m_textures[texture_index];
+
+				if (!tex.loadFromFile(image_path))
+				{
+					errorln("Failed to load image from file: ", image_path);
+					m_textures.remove_at_unordered(texture_index);
+					return false;
+				}
+
+				m_texture_map[image_hash] = texture_index;
+			}
+			catch (const std::exception& e)
+			{
+				errorln("Exception occurred while creating texture: ", e.what());
+				return false;
+			}
+			catch (...)
+			{
+				errorln("Unknown error occurred while creating texture for image: ", image_path);
+				return false;
+			}
+			return true;
+		}
+
 		bool make_sprite(std::string const& image_path, float x, float y)
 		{
 			c_hash image_hash(image_path);
