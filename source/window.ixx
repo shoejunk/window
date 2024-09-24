@@ -1,6 +1,6 @@
 export module stk.window;
 
-import std.core;
+import std;
 import stk.ds;
 import stk.hash;
 import stk.input;
